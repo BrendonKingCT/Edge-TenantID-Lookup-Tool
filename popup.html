@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Azure Tenant ID Finder</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      width: 360px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #f3f4f6;
+      color: #1f2937;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #0078d4, #005a9e);
+      padding: 18px 20px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-logo {
+      width: 32px;
+      height: 32px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .header-text h1 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.2;
+    }
+
+    .header-text p {
+      font-size: 11px;
+      color: rgba(255,255,255,0.75);
+      margin-top: 2px;
+    }
+
+    .body {
+      padding: 16px;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 9px 12px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      color: #1f2937;
+      background: #fff;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input[type="text"]:focus {
+      border-color: #0078d4;
+      box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.12);
+    }
+
+    input[type="text"]::placeholder {
+      color: #9ca3af;
+    }
+
+    button#lookupBtn {
+      padding: 9px 14px;
+      background: #0078d4;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+
+    button#lookupBtn:hover {
+      background: #006cbe;
+    }
+
+    button#lookupBtn:active {
+      background: #005ba1;
+    }
+
+    button#lookupBtn:disabled {
+      background: #93c5fd;
+      cursor: not-allowed;
+    }
+
+    .result-card {
+      margin-top: 14px;
+      background: #fff;
+      border-radius: 10px;
+      border: 1.5px solid #e5e7eb;
+      overflow: hidden;
+      display: none;
+    }
+
+    .result-card.visible {
+      display: block;
+    }
+
+    .result-card.success {
+      border-color: #bbf7d0;
+    }
+
+    .result-card.error {
+      border-color: #fecaca;
+    }
+
+    .result-header {
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .result-card.success .result-header {
+      background: #f0fdf4;
+      color: #16a34a;
+      border-bottom: 1px solid #bbf7d0;
+    }
+
+    .result-card.error .result-header {
+      background: #fff1f2;
+      color: #dc2626;
+      border-bottom: 1px solid #fecaca;
+    }
+
+    .result-body {
+      padding: 12px 14px;
+    }
+
+    .result-label {
+      font-size: 11px;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+
+    .tenant-id {
+      font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+      font-size: 13px;
+      color: #111827;
+      word-break: break-all;
+      line-height: 1.5;
+    }
+
+    .error-msg {
+      font-size: 13px;
+      color: #dc2626;
+      line-height: 1.5;
+    }
+
+    .copy-row {
+      margin-top: 10px;
+      display: flex;
+      gap: 6px;
+    }
+
+    button.copy-btn {
+      padding: 6px 12px;
+      background: #f3f4f6;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: inherit;
+      color: #374151;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    button.copy-btn:hover {
+      background: #e5e7eb;
+    }
+
+    button.copy-btn.copied {
+      background: #dcfce7;
+      border-color: #86efac;
+      color: #16a34a;
+    }
+
+    .meta-row {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #f3f4f6;
+    }
+
+    .meta-item {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11.5px;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+
+    .meta-item span:last-child {
+      color: #374151;
+      font-weight: 500;
+      max-width: 200px;
+      text-align: right;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .spinner {
+      display: none;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    .spinner.active {
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .footer {
+      padding: 10px 16px 14px;
+      font-size: 10.5px;
+      color: #9ca3af;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .footer a {
+      color: #0078d4;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-logo">🔍</div>
+    <div class="header-text">
+      <h1>Azure Tenant ID Finder</h1>
+      <p>Look up any Microsoft 365 / Entra ID tenant</p>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="input-group">
+      <input
+        type="text"
+        id="domainInput"
+        placeholder="e.g. microsoft.com"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button id="lookupBtn">
+        <span id="btnText">Look Up</span>
+        <span class="spinner" id="spinner"></span>
+      </button>
+    </div>
+
+    <!-- Result card -->
+    <div class="result-card" id="resultCard">
+      <div class="result-header" id="resultHeader"></div>
+      <div class="result-body" id="resultBody"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Uses the public <a href="https://login.microsoftonline.com/{domain}/.well-known/openid-configuration" target="_blank">OpenID Connect endpoint</a> — no auth required.
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
